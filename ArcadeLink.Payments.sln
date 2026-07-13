@@ -7,6 +7,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{0BB952A7-383
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ArcadeLink.Payments.Api", "src\ArcadeLink.Payments.Api\ArcadeLink.Payments.Api.csproj", "{ADB8BE12-4516-4BEF-89F4-3F695BC5286E}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0766E1BD-3524-4FAF-89E7-0B754B28EF15}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ArcadeLink.Payments.Api.Tests", "tests\ArcadeLink.Payments.Api.Tests\ArcadeLink.Payments.Api.Tests.csproj", "{CEF96790-5294-4EE8-A95B-1A48252BEEBE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,8 +24,13 @@ Global
 		{ADB8BE12-4516-4BEF-89F4-3F695BC5286E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ADB8BE12-4516-4BEF-89F4-3F695BC5286E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ADB8BE12-4516-4BEF-89F4-3F695BC5286E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CEF96790-5294-4EE8-A95B-1A48252BEEBE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CEF96790-5294-4EE8-A95B-1A48252BEEBE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CEF96790-5294-4EE8-A95B-1A48252BEEBE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CEF96790-5294-4EE8-A95B-1A48252BEEBE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{ADB8BE12-4516-4BEF-89F4-3F695BC5286E} = {0BB952A7-3833-44FA-A99C-0D473008E529}
+		{CEF96790-5294-4EE8-A95B-1A48252BEEBE} = {0766E1BD-3524-4FAF-89E7-0B754B28EF15}
 	EndGlobalSection
 EndGlobal

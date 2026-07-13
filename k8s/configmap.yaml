@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: payments-api-config
+data:
+  ASPNETCORE_ENVIRONMENT: "Development"
+  Jwt__Issuer: "ArcadeLink.Users"
+  Jwt__Audience: "ArcadeLink"
+  RabbitMq__Host: "rabbitmq"
+  RabbitMq__Username: "guest"
+  Payments__ApprovalRate: "0.8"
