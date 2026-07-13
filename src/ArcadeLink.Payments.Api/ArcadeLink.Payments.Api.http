@@ -1,6 +1,6 @@
 @ArcadeLink.Payments.Api_HostAddress = http://localhost:5100
 
-GET {{ArcadeLink.Payments.Api_HostAddress}}/weatherforecast/
+GET {{ArcadeLink.Payments.Api_HostAddress}}/health
 Accept: application/json
 
 ###
