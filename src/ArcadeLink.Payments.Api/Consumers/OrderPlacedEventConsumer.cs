@@ -1,17 +1,17 @@
 using ArcadeLink.Contracts;
 using ArcadeLink.Payments.Api.Options;
 using MassTransit;
-using Microsoft.Extensions.Options;
 
 namespace ArcadeLink.Payments.Api.Consumers;
 
-public class OrderPlacedEventConsumer(ILogger<OrderPlacedEventConsumer> logger, IOptions<PaymentsOptions> options)
+public class OrderPlacedEventConsumer(ILogger<OrderPlacedEventConsumer> logger, IApprovalRateProvider approvalRateProvider)
     : IConsumer<OrderPlacedEvent>
 {
     public async Task Consume(ConsumeContext<OrderPlacedEvent> context)
     {
         var message = context.Message;
-        var approved = Random.Shared.NextDouble() < options.Value.ApprovalRate;
+        var approvalRate = await approvalRateProvider.GetAsync();
+        var approved = Random.Shared.NextDouble() < approvalRate;
         var status = approved ? "Approved" : "Rejected";
 
         logger.LogInformation(

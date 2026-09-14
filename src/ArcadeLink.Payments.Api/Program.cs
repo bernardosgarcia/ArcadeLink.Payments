@@ -13,6 +13,10 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.Configure<PaymentsOptions>(builder.Configuration.GetSection(PaymentsOptions.SectionName));
 
+builder.Services.AddStackExchangeRedisCache(options =>
+    options.Configuration = builder.Configuration["Redis:ConnectionString"]);
+builder.Services.AddSingleton<IApprovalRateProvider, CachedApprovalRateProvider>();
+
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
     ?? throw new InvalidOperationException("Missing Jwt configuration section.");
 

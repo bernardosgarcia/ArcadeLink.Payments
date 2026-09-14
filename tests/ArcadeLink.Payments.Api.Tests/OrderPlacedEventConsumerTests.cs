@@ -17,6 +17,9 @@ public class OrderPlacedEventConsumerTests
         services.AddLogging(builder => builder.SetMinimumLevel(LogLevel.Warning));
         services.Configure<PaymentsOptions>(options => options.ApprovalRate = approvalRate);
 
+        services.AddDistributedMemoryCache();
+        services.AddSingleton<IApprovalRateProvider, CachedApprovalRateProvider>();
+
         services.AddMassTransitTestHarness(x =>
         {
             x.AddConsumer<OrderPlacedEventConsumer>();
