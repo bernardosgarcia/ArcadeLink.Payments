@@ -5,6 +5,10 @@ orientada a eventos do FIAP Cloud Games (FCG) — Tech Challenge Fase 2.
 
 Decidido como **stateless** (sem banco de dados) — não persiste histórico de transações.
 
+Este serviço **não é exposto pelo API Gateway (Kong)** — o edital só pede Gateway na frente de
+Users e Catalog; Payments continua só orientado a eventos, sem tráfego HTTP externo (o único
+endpoint HTTP que tem, `GET /health`, é só para health probes internos do k8s).
+
 ## Endpoints
 
 | Método | Rota | Descrição |
@@ -37,9 +41,7 @@ compose, k8s), use a sintaxe de variável de ambiente do ASP.NET Core (`__` no l
 | `RabbitMq__Username` | Usuário do broker. | `guest` |
 | `RabbitMq__Password` | Senha do broker. | `guest` |
 | `Payments__ApprovalRate` | Probabilidade (0.0–1.0) de aprovar um pagamento na simulação. Pode ser forçado para `0`/`1` para testes determinísticos. | `0.8` (padrão: 80% `Approved` / 20% `Rejected`) |
-| `Jwt__Issuer` | Issuer esperado do JWT — **precisa bater** com o emitido pelo Users. Sem uso ainda (nenhum endpoint autenticado hoje), conectado com antecedência. | `ArcadeLink.Users` |
-| `Jwt__Audience` | Audience esperada do JWT. | `ArcadeLink` |
-| `Jwt__Key` | Chave de assinatura para validar o JWT — **idêntica** à do Users (Etapa 6). | `dev-only-change-me-arcadelink-shared-jwt-signing-key-32bytes-min` |
+| `Redis__ConnectionString` | Connection string do Redis (cache de `Payments:ApprovalRate`). | `localhost:6379` (dev) / `redis:6379` (k8s) |
 
 ## Docker
 
@@ -68,19 +70,26 @@ para instruções completas.
 Manifestos em `k8s/` (`deployment.yaml`, `service.yaml`, `configmap.yaml`, `secret.yaml`) —
 `Deployment` usa `image: localhost/arcadelink-payments:latest` com `imagePullPolicy: Never` (sem
 registry, precisa ser carregada localmente no cluster antes do `kubectl apply`), `Service` expõe
-`port: 80` → `targetPort: 8080`. Config não sensível (`Jwt:Issuer`/`Audience`, `RabbitMq:Host`/
-`Username`, `Payments:ApprovalRate`) em `ConfigMap`; sensível (`Jwt:Key`, `RabbitMq:Password`) em
-`Secret`.
+`port: 80` → `targetPort: 8080`. `RabbitMq:Host`/`Username`/`Payments:ApprovalRate` em `ConfigMap`;
+`RabbitMq:Password` em `Secret`.
+
+O manifesto (`configmap.yaml`) já inclui `Redis__ConnectionString: "redis:6379"`, apontando para o
+Service `redis` do `ArcadeLink.Orchestration` — nenhuma edição manual é necessária antes de aplicar.
 
 Os manifestos de infraestrutura compartilhada (Postgres, RabbitMQ) ficam no repo âncora,
-`ArcadeLink.Users/k8s/` — veja o
-[README do ArcadeLink.Users](../ArcadeLink.Users/README.md#kubernetes) para o passo a passo completo
-(build das imagens, carregar no cluster local, ordem de `kubectl apply`).
+`ArcadeLink.Users/k8s/`; os de Redis ficam no `ArcadeLink.Orchestration` — veja o
+[README do ArcadeLink.Users](../ArcadeLink.Users/README.md#kubernetes) e o
+[README do ArcadeLink.Orchestration](../ArcadeLink.Orchestration/README.md) para o passo a passo
+completo (build das imagens, carregar no cluster local, ordem de `kubectl apply`).
 
 ## Consumer
 
 - `OrderPlacedEventConsumer` → decide `Approved`/`Rejected` aleatoriamente conforme
-  `Payments:ApprovalRate`, loga a decisão e publica `PaymentProcessedEvent`.
+  `Payments:ApprovalRate`, loga a decisão e publica `PaymentProcessedEvent`. A partir da Fase 3,
+  `Payments:ApprovalRate` não é mais lido direto de `IOptions<PaymentsOptions>` — o consumer depende
+  de `IApprovalRateProvider`, implementado por `CachedApprovalRateProvider`
+  (`Options/CachedApprovalRateProvider.cs`), que cacheia o valor no Redis com TTL de 30s (chave
+  `config:approval-rate`) antes de cair no `IOptions<PaymentsOptions>` como fonte original.
 
 ## Testes
 
@@ -88,9 +97,11 @@ Os manifestos de infraestrutura compartilhada (Postgres, RabbitMQ) ficam no repo
 dotnet test
 ```
 
-`tests/ArcadeLink.Payments.Api.Tests` (xUnit, 2 testes): `OrderPlacedEventConsumerTests`, usando
-`AddMassTransitTestHarness` (bus in-memory) — confirma que `Payments:ApprovalRate = 1` sempre publica
-`Approved` e `= 0` sempre publica `Rejected`. Não precisa de RabbitMQ rodando.
+`tests/ArcadeLink.Payments.Api.Tests` (xUnit, 4 testes): os 2 originais — `OrderPlacedEventConsumerTests`,
+usando `AddMassTransitTestHarness` (bus in-memory) — confirmam que `Payments:ApprovalRate = 1` sempre
+publica `Approved` e `= 0` sempre publica `Rejected` — mais `CachedApprovalRateProviderTests`, novo na
+Fase 3, cobrindo o cache-aside do Redis (hit retorna o valor cacheado sem tocar `IOptions`, miss lê de
+`IOptions` e popula o cache). Não precisa de RabbitMQ/Redis rodando.
 
 ## Contratos de eventos
 
@@ -107,4 +118,6 @@ Eventos definidos aqui:
 - `OrderPlacedEvent(Guid OrderId, Guid UserId, Guid GameId, decimal Price)` — publicado por
   `ArcadeLink.Catalog`.
 - `PaymentProcessedEvent(Guid OrderId, Guid UserId, Guid GameId, string Status)` — consumido por
-  `ArcadeLink.Catalog` e `ArcadeLink.Notifications` (`Status`: `"Approved"` | `"Rejected"`).
+  `ArcadeLink.Catalog` e pela `PurchaseConfirmationFunction` em `ArcadeLink.NotificationsFunction`
+  (a partir da Fase 3; era `ArcadeLink.Notifications` na Fase 2) (`Status`: `"Approved"` |
+  `"Rejected"`).
